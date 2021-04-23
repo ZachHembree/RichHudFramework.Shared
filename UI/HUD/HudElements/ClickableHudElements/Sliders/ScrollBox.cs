@@ -84,7 +84,7 @@ namespace RichHudFramework.UI
         /// </summary>
         public int Start
         {
-            get { return _start; }
+            get { return MathHelper.Clamp(_start, 0, hudCollectionList.Count - 1); }
             set 
             {
                 _start = MathHelper.Clamp(value, 0, hudCollectionList.Count - 1);
@@ -97,7 +97,7 @@ namespace RichHudFramework.UI
         /// </summary>
         public int End
         {
-            get { return _end; } 
+            get { return MathHelper.Clamp(_end, 0, hudCollectionList.Count - 1); } 
             set 
             {
                 _end = MathHelper.Clamp(value, 0, hudCollectionList.Count - 1);
@@ -490,8 +490,9 @@ namespace RichHudFramework.UI
 
         public override void GetUpdateAccessors(List<HudUpdateAccessors> UpdateActions, byte treeDepth)
         {
-            int preloadStart = MathHelper.Clamp(Start - 10, 0, hudCollectionList.Count - 1),
-                preloadCount = MathHelper.Clamp((End + 10) - preloadStart, 0, hudCollectionList.Count - preloadStart);
+            int preloadRange = Math.Max((End - Start) * 2, 10),
+                preloadStart = MathHelper.Clamp(Start - preloadRange, 0, hudCollectionList.Count - 1),
+                preloadCount = MathHelper.Clamp((End + preloadRange) - preloadStart, 0, hudCollectionList.Count - preloadStart);
 
             NodeUtils.SetNodesState<TElementContainer, TElement>
                 (HudElementStates.CanPreload, true, hudCollectionList, 0, hudCollectionList.Count);
