@@ -1,17 +1,16 @@
-﻿using System;
+﻿using RichHudFramework.UI.Rendering;
 using System.Text;
-using RichHudFramework.UI.Rendering;
+using System;
 using VRageMath;
+using VRage.Game;
 
 namespace RichHudFramework.UI
 {
-    using UI;
-
     /// <summary>
     /// Named color picker using sliders designed to mimic the appearance of the color picker in the SE terminal.
     /// RGB only. Alpha not supported.
     /// </summary>
-    public class ColorPickerRGB : HudElementBase
+    public class ColorPickerHSV : HudElementBase
     {
         /// <summary>
         /// Text rendered by the label
@@ -32,13 +31,13 @@ namespace RichHudFramework.UI
         /// Formatting used by the color value labels
         /// </summary>
         public GlyphFormat ValueFormat
-        { 
-            get { return sliderText[0].Format; } 
-            set 
+        {
+            get { return sliderText[0].Format; }
+            set
             {
                 foreach (Label label in sliderText)
                     label.TextBoard.SetFormatting(value);
-            } 
+            }
         }
 
         public override float Width
@@ -69,16 +68,17 @@ namespace RichHudFramework.UI
         }
 
         /// <summary>
-        /// Color currently specified by the color picker
+        /// Color currently specified by the color picker. Formatted as non-normalized, offset HSV.
+        /// Max: [360, 100, 100]
         /// </summary>
-        public Color Color 
-        { 
+        public Vector3 Color
+        {
             get { return _color; }
-            set 
+            set
             {
-                sliders[0].Current = value.R;
-                sliders[1].Current = value.G;
-                sliders[2].Current = value.B;
+                sliders[0].Current = value.X;
+                sliders[1].Current = value.Y;
+                sliders[2].Current = value.Z;
                 _color = value;
             }
         }
@@ -96,10 +96,10 @@ namespace RichHudFramework.UI
 
         private readonly HudChain mainChain, colorChain;
         private readonly StringBuilder valueBuilder;
-        private Color _color;
+        private Vector3 _color;
         private int focusedChannel;
 
-        public ColorPickerRGB(HudParentBase parent) : base(parent)
+        public ColorPickerHSV(HudParentBase parent) : base(parent)
         {
             // Header
             name = new Label()
@@ -113,12 +113,12 @@ namespace RichHudFramework.UI
             display = new TexturedBox()
             {
                 Width = 231f,
-                Color = Color.Black
+                Color = VRageMath.Color.Black
             };
 
             var dispBorder = new BorderBox(display)
             {
-                Color = Color.White,
+                Color = VRageMath.Color.White,
                 Thickness = 1f,
                 DimAlignment = DimAlignments.Both,
             };
@@ -147,11 +147,11 @@ namespace RichHudFramework.UI
                 CollectionContainer = { sliderText[0], sliderText[1], sliderText[2] }
             };
 
-            sliders = new SliderBox[] 
+            sliders = new SliderBox[]
             {
-                new SliderBox() { Min = 0f, Max = 255f, Height = 47f },
-                new SliderBox() { Min = 0f, Max = 255f, Height = 47f },
-                new SliderBox() { Min = 0f, Max = 255f, Height = 47f }
+                new SliderBox() { Min = 0f, Max = 360f, Height = 47f },
+                new SliderBox() { Min = 0f, Max = 100f, Height = 47f },
+                new SliderBox() { Min = 0f, Max = 100f, Height = 47f }
             };
 
             colorSliderColumn = new HudChain<HudElementContainer<SliderBox>, SliderBox>(true)
@@ -191,7 +191,7 @@ namespace RichHudFramework.UI
             focusedChannel = -1;
         }
 
-        public ColorPickerRGB() : this(null)
+        public ColorPickerHSV() : this(null)
         { }
 
         /// <summary>
@@ -207,30 +207,29 @@ namespace RichHudFramework.UI
 
         protected override void Layout()
         {
-            _color = new Color()
+            _color = new Vector3()
             {
-                R = (byte)Math.Round(sliders[0].Current),
-                G = (byte)Math.Round(sliders[1].Current),
-                B = (byte)Math.Round(sliders[2].Current),
-                A = 255
+                X = sliders[0].Current,
+                Y = sliders[1].Current,
+                Z = sliders[2].Current,
             };
 
             valueBuilder.Clear();
-            valueBuilder.Append("R: ");
-            valueBuilder.Append(_color.R);
+            valueBuilder.Append("H: ");
+            valueBuilder.Append(Math.Round(_color.X, 1));
             sliderText[0].TextBoard.SetText(valueBuilder);
 
             valueBuilder.Clear();
-            valueBuilder.Append("G: ");
-            valueBuilder.Append(_color.G);
+            valueBuilder.Append("S: ");
+            valueBuilder.Append(Math.Round(_color.Y, 1));
             sliderText[1].TextBoard.SetText(valueBuilder);
 
             valueBuilder.Clear();
-            valueBuilder.Append("B: ");
-            valueBuilder.Append(_color.B);
+            valueBuilder.Append("V: ");
+            valueBuilder.Append(Math.Round(_color.Z, 1));
             sliderText[2].TextBoard.SetText(valueBuilder);
 
-            display.Color = _color;
+            display.Color = (_color / new Vector3(360f, 100f, 100f)).HSVtoColor();
         }
 
         protected override void HandleInput(Vector2 cursorPos)
